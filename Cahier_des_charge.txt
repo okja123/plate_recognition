@@ -1,0 +1,7 @@
+reconnaissance de plaque dimatriculation
+Notre projet esssaye de reconnaitre une plaque dimatriculation grace a un system neuronnale 
+pour sa nous avon choisie de recupere un set de donnée que lon traitera pour sa nous utiliseron 
+la bibliotheque opencv ,
+et panda 
+pour la reconnaissance de chiffre on utiliser le dataset emnist digit pour entrainez notre model
+puis pour le resaux neuronal nous utiliseron keras avec comme backend jax

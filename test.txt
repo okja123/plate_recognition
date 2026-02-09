@@ -1,0 +1,1 @@
+https://gis.stackexchange.com/questions/178781/how-to-detect-corner-of-shapefile-in-python

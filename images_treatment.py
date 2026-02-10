@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 import glob
 
+#pip install kagglehub opencv-python numpy
 def download_licence_plate():
     os.environ['KAGGLEHUB_CACHE'] = './'
     path = kagglehub.dataset_download("abdelhamidzakaria/european-license-plates-dataset")

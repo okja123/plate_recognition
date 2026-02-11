@@ -11,13 +11,8 @@ def download_licence_plate():
     path = kagglehub.dataset_download("abdelhamidzakaria/european-license-plates-dataset")
     print("path ", path)
 
-PATH_TO_DATASET = "./datasets/abdelhamidzakaria/european-license-plates-dataset/versions/1/dataset_final"
-
-images = [cv2.imread(f,cv2.IMREAD_GRAYSCALE) for f in glob.glob(PATH_TO_DATASET+"/test/*.png")]
-image = images[1]
-
 def image_treatment(img):
-    _ ,img_treshold = cv2.threshold(img,int(np.mean(img)),255,cv2.THRESH_BINARY)
+    _ ,img_treshold = cv2.threshold(img,int(np.mean(img)*1.1),255,cv2.THRESH_BINARY)
     contours, _ = cv2.findContours(img_treshold, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
     contours_plaque = max(contours, key=cv2.contourArea)
     return(img_treshold,contours,contours_plaque)
@@ -40,7 +35,6 @@ def detection_corner2(contours_input,range_point):
     for i in range(l):
         p_prev = contours[(i - range_point) % l]
         p_next = contours[(i + range_point) % l]
-
         midpoint = (p_prev + p_next) / 2.0
         score = np.linalg.norm(contours[i] - midpoint)
         scores[i] = score
@@ -53,93 +47,110 @@ def detection_corner2(contours_input,range_point):
         beta=255,
         norm_type=cv2.NORM_MINMAX
     ).astype(np.uint8)
-
+    """
     heat_map = np.zeros(image.shape).astype(np.uint8)
     for i in range(len(contours)):
         heat_map[contours[i][1]][contours[i][0]] = scores[i][0]
     cv2.imshow("heatmap",heat_map)
-
+    """
     tresh = np.mean(scores)*1.9   # prblem de type c d int8 jcroi 
     indices = np.where(scores > tresh)[0]
     scores_tresh = scores[indices]
     contours_tresh = contours[indices]
-
-
-    print(tresh)
-    vec_3s = np.hstack((contours_tresh, scores_tresh.astype(np.uint32)))  # cjroi que sa regle
+    vec_3s = np.hstack((contours_tresh, scores_tresh.astype(np.uint32)*5))  # cjroi que sa regle
     superpxl = np.array([
-        [0,0,255],
-        [image.shape[1],0,255],
-        [0,image.shape[0],255],
-        [image.shape[1],image.shape[0],255],
+        [0,0,255,0],
+        [image.shape[1],0,255,1],
+        [0,image.shape[0],255,2],
+        [image.shape[1],image.shape[0],255,3],
     ],dtype=np.float32)
 
     def aprox(sPxs,pxs):
         sPxs = np.array(sPxs)
         pxs = np.array(pxs)
-        tree = cKDTree(sPxs)
+        tree = cKDTree(sPxs[:, :-1])
         _, indices = tree.query(pxs)
         res = []
         for i in range(len(sPxs)):
             assigned = pxs[indices == i]
             if len(assigned) > 0:
-                res.append(assigned.mean(axis=0))
+                res.append(np.hstack((assigned[:-1].mean(axis=0),sPxs[i][3])))
             else:
                 res.append(sPxs[i])
         return np.array(res)
     
     superpxl = aprox(superpxl,vec_3s)
-
-
-
+    
+    
+    coords = superpxl.astype(int)[:,:3]
+    """
     heat_map_tresh = np.zeros(image.shape).astype(np.uint8)
-    coords = np.clip(superpxl[:, :2].astype(int), 0, [image.shape[1]-1, image.shape[0]-1])
     heat_map_tresh[coords[:,1], coords[:,0]] = 255
     cv2.imshow("heatmap_tresh", heat_map_tresh)
     
-    return superpxl[:, :2]
+    img_corner = np.zeros(image.shape).astype(np.uint8)
+    index = 50
+    for (x, y) in superpxl[:, :2]:
+        cv2.circle(
+            img_corner,
+            (int(x), int(y)),
+            radius=1,
+            color=index, 
+            thickness=1
+        )
+        index+=50
+    cv2.imshow("image corner size : "+str(len(superpxl[:, :2])),img_corner)
+    """
+    return superpxl.astype(int)
 
 def transform(img,init):
     if len(init) != 4:
         print("pas bon nbr de coin")
         return img
+    
+    cotees = init[init[:, 3].argsort()]
     shape = img.shape
+
     a = np.array([
         [50,45],
         [420,17],
         [55,122],
         [420,126],
     ],dtype=np.float32)
+
     b = np.array([
         [0,0],
         [shape[1],0],
         [0,shape[0]],
         [shape[1],shape[0]],
     ],dtype=np.float32)
-    T = cv2.getPerspectiveTransform(a ,b)
+    print(cotees[:,:2])
+    print(b)
+    T = cv2.getPerspectiveTransform(cotees[:,:2].astype(dtype=np.float32),b)
     img_trans = cv2.warpPerspective(img,T,(shape[1],shape[0]))
     return img_trans
 
+PATH_TO_DATASET = "./datasets/abdelhamidzakaria/european-license-plates-dataset/versions/1/dataset_final"
 
+images = [cv2.imread(f,cv2.IMREAD_GRAYSCALE) for f in glob.glob(PATH_TO_DATASET+"/test/*.png")]
+image = images[5]
 
 img_treshold,contours,contours_plaque = image_treatment(image)
 corner = detection_corner2(contours_plaque,12)
 img_transformed = transform(image,corner)
 
-cv2.imshow("image",image)
-cv2.imshow("image contour",cv2.polylines(np.zeros(image.shape),contours_plaque,1,(255,255,255),1 ))
-img_corner = np.zeros(image.shape).astype(np.uint8)
-index = 50
-for (x, y) in corner:
-    cv2.circle(
-        img_corner,
-        (int(x), int(y)),
-        radius=1,
-        color=index, 
-        thickness=1
-    )
-    index+=50
-cv2.imshow("image corner size : "+str(len(corner)),img_corner)
+image_treated = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+cv2.polylines(image_treated,contours_plaque,1,(0,255,0),1)
+for (x, y) in corner[:, :2]:
+        cv2.circle(
+            image_treated,
+            (int(x), int(y)),
+            radius=1,
+            color=(255,0,0), 
+            thickness=2
+        )
+cv2.imshow("image tresh",img_treshold)
+cv2.imshow("image treated",image_treated)
 cv2.imshow("image transformed",img_transformed)
 #cv2.imwrite("test.png",black_img)
 cv2.waitKey(0)

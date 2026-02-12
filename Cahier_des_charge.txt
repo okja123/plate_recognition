@@ -7,3 +7,6 @@ la bibliotheque opencv ,
 et panda 
 pour la reconnaissance de chiffre on utiliser le dataset emnist digit pour entrainez notre model
 puis pour le resaux neuronal nous utiliseron keras avec comme backend jax
+
+
+dataset licenceplate kaggle > small img opencv pandas scipy > neuronalsystem keras jax dataset emnist 

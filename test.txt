@@ -1,0 +1,24 @@
+https://gis.stackexchange.com/questions/178781/how-to-detect-corner-of-shapefile-in-python
+
+
+
+    img_norm = cv2.normalize(
+        heat_map,
+        None,
+        alpha=0,
+        beta=255,
+        norm_type=cv2.NORM_MINMAX
+    ).astype(np.uint8)
+
+
+
+        cv2.line(
+            heat_map,
+            tuple(map(int, vec2_half + contours[i-range_point])),
+            contours[i],
+            color=255,
+            thickness=1
+        )
+
+
+

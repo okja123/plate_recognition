@@ -1,19 +1,20 @@
-import itertools
-import math
+from scipy.spatial import cKDTree
 import kagglehub
 import os 
 import cv2
 import numpy as np
 import glob
 
-#pip install kagglehub opencv-python numpy
+#pip install kagglehub opencv-python numpy scu=ip
 def download_licence_plate():
     os.environ['KAGGLEHUB_CACHE'] = './'
     path = kagglehub.dataset_download("abdelhamidzakaria/european-license-plates-dataset")
     print("path ", path)
 
 def image_treatment(img):
-    _ ,img_treshold = cv2.threshold(img,int(np.mean(img)*1.1),255,cv2.THRESH_BINARY)
+    kernel = np.ones((5,5),np.float32)/25
+    bulr = cv2.filter2D(img,-1,kernel)
+    _ ,img_treshold = cv2.threshold(bulr,int(np.mean(img)),255,cv2.THRESH_BINARY)
     contours, _ = cv2.findContours(img_treshold, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
     contours_plaque = max(contours, key=cv2.contourArea)
     return(img_treshold,contours,contours_plaque)
@@ -48,22 +49,24 @@ def detection_corner2(contours_input,range_point):
         beta=255,
         norm_type=cv2.NORM_MINMAX
     ).astype(np.uint8)
-    """
+    
     heat_map = np.zeros(image.shape).astype(np.uint8)
     for i in range(len(contours)):
         heat_map[contours[i][1]][contours[i][0]] = scores[i][0]
     cv2.imshow("heatmap",heat_map)
-    """
-    tresh = np.mean(scores)*1.9   # prblem de type c d int8 jcroi 
+    
+    tresh = 150
+    print(scores)
     indices = np.where(scores > tresh)[0]
     scores_tresh = scores[indices]
     contours_tresh = contours[indices]
-    vec_3s = np.hstack((contours_tresh, scores_tresh.astype(np.uint32)*5))  # cjroi que sa regle
+    lum = 5
+    vec_3s = np.hstack((contours_tresh, scores_tresh.astype(np.uint32)*lum))  # cjroi que sa regle
     superpxl = np.array([
-        [0,0,255,0],
-        [image.shape[1],0,255,1],
-        [0,image.shape[0],255,2],
-        [image.shape[1],image.shape[0],255,3],
+        [0,0,255*lum,0],
+        [image.shape[1],0,255*lum,1],
+        [0,image.shape[0],255*lum,2],
+        [image.shape[1],image.shape[0],255*lum,3],
     ],dtype=np.float32)
 
     def aprox(sPxs,pxs):
@@ -126,8 +129,6 @@ def transform(img,init):
         [0,shape[0]],
         [shape[1],shape[0]],
     ],dtype=np.float32)
-    print(cotees[:,:2])
-    print(b)
     T = cv2.getPerspectiveTransform(cotees[:,:2].astype(dtype=np.float32),b)
     img_trans = cv2.warpPerspective(img,T,(shape[1],shape[0]))
     return img_trans
@@ -135,10 +136,10 @@ def transform(img,init):
 PATH_TO_DATASET = "./datasets/abdelhamidzakaria/european-license-plates-dataset/versions/1/dataset_final"
 
 images = [cv2.imread(f,cv2.IMREAD_GRAYSCALE) for f in glob.glob(PATH_TO_DATASET+"/test/*.png")]
-image = images[5]
+image = images[0]#5
 
 img_treshold,contours,contours_plaque = image_treatment(image)
-corner = detection_corner2(contours_plaque,12)
+corner = detection_corner2(contours_plaque,int(image.shape[0]/2))
 img_transformed = transform(image,corner)
 
 image_treated = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)

@@ -1,5 +1,7 @@
 reconnaissance de plaque dimatriculation
 Notre projet esssaye de reconnaitre une plaque dimatriculation grace a un system neuronnale 
+
+dataset licenceplate from kaggle -> small img number opencv pandas -> nuronal system keras jax emnist dataset
 pour sa nous avon choisie de recupere un set de donnée que lon traitera pour sa nous utiliseron 
 la bibliotheque opencv ,
 et panda 

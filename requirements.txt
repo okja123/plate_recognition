@@ -1,0 +1,6 @@
+pandas==2.2.3
+numpy==1.26.4
+keras==3.8.0
+jax[cpu]==0.4.38
+matplotlib==3.10.0
+opencv-python==4.10.0.84

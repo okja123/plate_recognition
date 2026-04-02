@@ -1,29 +1,36 @@
-# Number Plate Recognition Baseline (Pandas + Keras/JAX)
+# Number Plate Recognition (Pandas + Keras/JAX)
 
-This repository provides a complete baseline focused on **character recognition** for license plates:
+Reconnaissance de plaques d'immatriculation par réseau de neurones convolutif.
 
-1. Train a CNN on EMNIST digits from zipped CSV files with **pandas**.
-2. Save model to `models/digit_model.keras`.
-3. Run inference on plate images (`--image` or `--folder`) with simple plate localization + character segmentation.
+## Pipeline
 
-## Project Structure
+1. **Prepare** — Extraire des caractères étiquetés à partir de photos de plaques.
+2. **Train** — Entraîner un CNN sur EMNIST digits, sur des images extraites, ou les deux.
+3. **Infer** — Lire le texte d'une plaque à partir d'une image.
+
+## Structure du projet
 
 ```text
 plate_recognition/
-├── emnist-digits-train.csv.zip
-├── emnist-digits-test.csv.zip
-├── main.py
+├── main.py                     # Point d'entrée CLI (prepare / train / infer)
 ├── requirements.txt
+├── emnist-digits-train.csv.zip # Dataset EMNIST digits
+├── emnist-digits-test.csv.zip
+├── images_treatment.py         # Prototype initial (corner detection)
 ├── src/
-│   ├── model.py
-│   ├── train_emnist.py
-│   ├── infer_plate.py
-│   └── utils_image.py
-└── models/
-    └── digit_model.keras (generated)
+│   ├── model.py                # Définition du CNN (Keras)
+│   ├── train_emnist.py         # Entraînement (EMNIST + dossier d'images)
+│   ├── prepare_data.py         # Extraction de caractères depuis des photos
+│   ├── infer_plate.py          # Inférence sur images de plaques
+│   └── utils_image.py          # Détection de plaque, correction de perspective, segmentation
+├── models/
+│   ├── digit_model.keras       # Modèle entraîné
+│   └── label_map.json          # Mapping caractère → index
+└── data/
+    └── chars/                  # Caractères extraits (généré par prepare)
 ```
 
-## Setup
+## Installation
 
 ```bash
 python3 -m venv .venv
@@ -33,56 +40,54 @@ pip install -r requirements.txt
 export KERAS_BACKEND=jax
 ```
 
-## Train
+## Utilisation
 
-Full training:
+### 1. Préparer des données depuis des photos de plaques
 
+Nommer chaque image avec le texte de la plaque (ex: `AB123CD.png`, `AB-123-CD.jpg`).
+
+```bash
+python main.py prepare --input path/to/plate_photos --output data/chars
+```
+
+Options :
+- `--assume-cropped-plate` — si les images sont déjà recadrées sur la plaque
+- `--no-perspective` — désactiver la correction de perspective
+
+### 2. Entraîner le modèle
+
+**Avec EMNIST (digits uniquement) :**
 ```bash
 python main.py train --epochs 5 --batch-size 128
 ```
 
-Model output:
-
-```text
-models/digit_model.keras
+**Avec des images extraites (lettres + chiffres) :**
+```bash
+python main.py train --train-dir data/chars --epochs 10
 ```
 
-### Smoke Test (fast)
+**Combinaison EMNIST + images (merge) :**
+```bash
+python main.py train --train-dir data/chars --merge --epochs 10
+```
 
-Use a subset to confirm the pipeline runs:
-
+**Smoke test rapide :**
 ```bash
 python main.py train --epochs 1 --train-limit 5000 --test-limit 1000 --batch-size 64
 ```
 
-## Inference
-
-Single image:
+### 3. Inférence
 
 ```bash
-python main.py infer --image path/to/plate.jpg --model models/digit_model.keras
-```
-
-Folder of images:
-
-```bash
-python main.py infer --folder path/to/images --model models/digit_model.keras
-```
-
-If images are already tightly cropped to only the plate region:
-
-```bash
+python main.py infer --image path/to/plate.jpg
+python main.py infer --folder path/to/images
 python main.py infer --folder path/to/images --assume-cropped-plate
-```
-
-Save debug images with character boxes:
-
-```bash
 python main.py infer --folder path/to/images --debug-out outputs/debug
 ```
 
 ## Notes
 
-- EMNIST digits classes are `0-9`, so predictions are digits only in this baseline.
-- Plate detection is heuristic-based; if detection is unstable, use `--assume-cropped-plate`.
-- Errors are reported per image (missing file, no segmented characters, unreadable image, etc.).
+- Le modèle reconnaît 36 classes (0-9, A-Z) quand il est entraîné avec des images de plaques.
+- La détection de plaque est heuristique ; utiliser `--assume-cropped-plate` si instable.
+- La correction de perspective améliore les résultats sur les photos prises en angle.
+- Le fichier `label_map.json` est généré automatiquement pendant l'entraînement.

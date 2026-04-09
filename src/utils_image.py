@@ -209,9 +209,17 @@ def segment_characters(binary_inv_plate: np.ndarray) -> list[tuple[int, int, int
         area = cw * ch
         if area < min_area:
             continue
-        if ch < 0.25 * h:
+        # Too short → noise / small dots
+        if ch < 0.35 * h:
             continue
+        # Too wide → plate border
         if cw > 0.6 * w:
+            continue
+        # In the leftmost 12% of the plate → EU flag / country strip
+        if x + cw / 2 < 0.12 * w:
+            continue
+        # Very thin vertically → dash separators (aspect ratio width/height)
+        if cw / max(ch, 1) < 0.25:
             continue
         boxes.append((x, y, cw, ch))
 

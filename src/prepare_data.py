@@ -32,8 +32,10 @@ IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"}
 
 
 def _clean_plate_text(filename_stem: str) -> str:
-    """Remove dashes, spaces, underscores — keep only alphanumeric chars."""
-    return re.sub(r"[^A-Za-z0-9]", "", filename_stem).upper()
+    """Remove dashes, spaces, and trailing _1/_2 suffixes — keep only alphanumeric chars."""
+    # Strip trailing duplicate suffixes like _1, _2 (e.g. 9JAG121_1 → 9JAG121)
+    cleaned = re.sub(r"_\d+$", "", filename_stem)
+    return re.sub(r"[^A-Za-z0-9]", "", cleaned).upper()
 
 
 def _save_char_image(canvas_28: np.ndarray, label: str, output_dir: Path, index: int) -> Path:

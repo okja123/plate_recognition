@@ -24,7 +24,6 @@ import argparse
 import json
 from pathlib import Path
 
-import cv2
 import numpy as np
 import pandas as pd
 
@@ -102,6 +101,8 @@ def _load_image_folder(folder: Path,
     Load 28×28 grayscale images from class sub-folders.
     Returns flat pixel arrays (n, 784) and integer labels.
     """
+    import cv2
+
     xs, ys = [], []
     for class_dir in sorted(folder.iterdir()):
         if not class_dir.is_dir():
